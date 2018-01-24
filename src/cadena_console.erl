@@ -4,6 +4,14 @@
          create/1,
          ensemble_status/1]).
 
+-export([put_data/2,
+         get_data/1,
+         delete_data/1,
+         update_data/2]).
+
+%%
+% CLUSTER COMMANDS
+%%
 join([NodeStr]) ->
     % node name comes as a list string, we need it as an atom
 	Node = list_to_atom(NodeStr),
@@ -60,3 +68,34 @@ check_stable() ->
         false ->
             false
     end.
+
+%%
+% DATA COMMANDS
+%%
+
+put_data(Key, Value) ->
+    Timeout = 1000,
+    Ensemble = root,
+    riak_ensemble_client:kover(Ensemble, Key, Value, Timeout).
+
+get_data(Key) ->
+    Timeout = 1000,
+    Ensemble = root,
+    riak_ensemble_client:kget(Ensemble, Key, Timeout).
+
+delete_data(Key) ->
+    Timeout = 1000,
+    Ensemble = root,
+    riak_ensemble_client:kdelete(Ensemble, Key, Timeout).
+
+update_data(Key1, NewVal) ->
+    Timeout = 1000,
+    Ensemble = root,
+    DefaultVal = <<"v0">>,
+
+    riak_ensemble_peer:kmodify(node(), Ensemble, Key1,
+        fun({Epoch, Seq}, CurVal) ->
+            io:format("CurVal: ~p ~p ~p to ~p~n", [Epoch, Seq, CurVal, NewVal]),
+            NewVal
+        end,
+    DefaultVal, Timeout).
